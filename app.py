@@ -1,7 +1,7 @@
 import os
 import io
 import streamlit as st
-import google.generativeai as genai
+from google import genai
 from pypdf import PdfReader
 from docx import Document
 from dotenv import load_dotenv
@@ -31,7 +31,13 @@ api_key = st.sidebar.text_input(
 
 model_name = st.sidebar.selectbox(
     "Modèle",
-    ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-1.5-flash", "gemini-1.5-pro"],
+    [
+        "gemini-3.8-flash",
+        "gemini-3.7-flash",
+        "gemini-3.6-flash",
+        "gemini-3.5-flash",
+        "gemini-3.8-pro",
+    ],
     index=0,
 )
 
@@ -180,18 +186,19 @@ en respectant scrupuleusement la structure et le style demandés.
 #  GENERATION
 # ─────────────────────────────────────────────────────────────
 def generate_markdown(lesson_text, meta):
-    genai.configure(api_key=api_key)
-    model = genai.GenerativeModel(model_name)
+    client = genai.Client(api_key=api_key)
     prompt = SYSTEM_INSTRUCTIONS + "\n\n" + USER_TEMPLATE.format(
         lesson=lesson_text, **meta
     )
-    response = model.generate_content(prompt)
+    response = client.models.generate_content(
+        model=model_name,
+        contents=prompt,
+    )
     return response.text
 
 def markdown_to_latex(markdown_text):
     """Second call : convertit le markdown en LaTeX propre."""
-    genai.configure(api_key=api_key)
-    model = genai.GenerativeModel(model_name)
+    client = genai.Client(api_key=api_key)
     prompt = f"""
 Convertis le document Markdown suivant en un document LaTeX COMPLET
 et COMPILABLE avec pdflatex (classe article, encodage utf8, langue française
@@ -207,7 +214,10 @@ Document Markdown :
 
 {markdown_text}
 """
-    response = model.generate_content(prompt)
+    response = client.models.generate_content(
+        model=model_name,
+        contents=prompt,
+    )
     latex = response.text.strip()
     # nettoyage des éventuels ```latex ... ```
     if latex.startswith("```"):
